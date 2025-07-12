@@ -16,10 +16,8 @@ export const useNotifications = (userId?: string) => {
   }, [userId]);
 
   const loadNotifications = async () => {
-    if (!userId) return;
-    
     try {
-      const notificationsData = await notificationService.getNotifications(userId);
+      const notificationsData = await notificationService.getNotifications();
       setNotifications(notificationsData);
     } catch (error) {
       console.error('Error loading notifications:', error);
@@ -49,10 +47,8 @@ export const useNotifications = (userId?: string) => {
   };
 
   const markAllAsRead = async () => {
-    if (!userId) return;
-    
     try {
-      await notificationService.markAllAsRead(userId);
+      await notificationService.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (error) {
       console.error('Error marking all notifications as read:', error);

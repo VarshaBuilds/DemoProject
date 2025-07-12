@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, Users, Clock, Eye } from 'lucide-react';
 import { Question } from '../types';
 import { RichTextEditor } from '../components/RichTextEditor';
 import { AnswerCard } from '../components/AnswerCard';
-import { QuestionCard } from '../components/QuestionCard';
 import { useQuestions } from '../hooks/useQuestions';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
+import { answerService, questionService } from '../services/api';
 
 interface QuestionDetailProps {
   question: Question;
@@ -16,17 +16,31 @@ interface QuestionDetailProps {
 export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack }) => {
   const [answerContent, setAnswerContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [answers, setAnswers] = useState<any[]>([]);
+  const [relatedQuestions, setRelatedQuestions] = useState<Question[]>([]);
   
   const { user } = useAuth();
-  const { createAnswer, vote, acceptAnswer, getQuestionAnswers, incrementViews, getRelatedQuestions, getUserAnswerCount } = useQuestions();
+  const { createAnswer, vote, acceptAnswer, incrementViews } = useQuestions();
   const { addNotification } = useNotifications();
   
-  const answers = getQuestionAnswers(question.id);
   const isQuestionOwner = user?.id === question.authorId;
-  const relatedQuestions = getRelatedQuestions(question);
 
-  // Increment views when component mounts
-  React.useEffect(() => {
+  // Load answers and related questions
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [answersData, relatedData] = await Promise.all([
+          answerService.getAnswers(question.id),
+          questionService.getRelatedQuestions(question.id)
+        ]);
+        setAnswers(answersData);
+        setRelatedQuestions(relatedData);
+      } catch (error) {
+        console.error('Error loading question data:', error);
+      }
+    };
+
+    loadData();
     incrementViews(question.id);
   }, [question.id, incrementViews]);
 
@@ -41,6 +55,9 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
         content: answerContent.trim(),
         authorId: user.id,
       });
+
+      // Add to local state
+      setAnswers(prev => [newAnswer, ...prev]);
 
       // Send notification to question owner
       if (question.authorId !== user.id) {
@@ -68,7 +85,10 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
       return;
     }
     try {
-      await vote(answerId, type, user.id);
+      await vote(answerId, type);
+      // Reload answers to get updated vote counts
+      const updatedAnswers = await answerService.getAnswers(question.id);
+      setAnswers(updatedAnswers);
     } catch (error: any) {
       alert(error.message || 'Error voting on answer');
     }
@@ -78,6 +98,11 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
     if (!user || !isQuestionOwner) return;
     try {
       await acceptAnswer(answerId, question.id);
+      // Update local state
+      setAnswers(prev => prev.map(a => ({
+        ...a,
+        isAccepted: a.id === answerId
+      })));
     } catch (error) {
       console.error('Error accepting answer:', error);
     }
