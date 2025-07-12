@@ -1,29 +1,28 @@
-import jwt from 'jsonwebtoken';
-import { IUser } from '../models/User';
-
-const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'your-super-secret-jwt-key-here';
-
-export interface TokenPayload {
-  userId: string;
-  username: string;
-  email: string;
-  role: string;
-}
-
-export const generateToken = (user: IUser): string => {
-  const payload: TokenPayload = {
-    userId: user._id.toString(),
+// JWT token utilities for frontend
+export const generateToken = (user: any): string => {
+  // This would typically be done on the backend
+  // For now, we'll create a simple token structure
+  const payload = {
+    userId: user.id,
     username: user.username,
     email: user.email,
-    role: user.role
+    role: user.role,
+    exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
   };
-
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  
+  return btoa(JSON.stringify(payload));
 };
 
-export const verifyToken = (token: string): TokenPayload | null => {
+export const verifyToken = (token: string): any | null => {
   try {
-    return jwt.verify(token, JWT_SECRET) as TokenPayload;
+    const payload = JSON.parse(atob(token));
+    
+    // Check if token is expired
+    if (payload.exp && Date.now() > payload.exp) {
+      return null;
+    }
+    
+    return payload;
   } catch (error) {
     return null;
   }
