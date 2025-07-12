@@ -14,6 +14,7 @@ const INITIAL_QUESTIONS: Question[] = [
     updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     answerCount: 2,
     votes: 5,
+    views: 45,
   },
   {
     id: '2',
@@ -26,6 +27,7 @@ const INITIAL_QUESTIONS: Question[] = [
     updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     answerCount: 1,
     votes: 3,
+    views: 23,
   },
   {
     id: '3',
@@ -38,6 +40,7 @@ const INITIAL_QUESTIONS: Question[] = [
     updatedAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
     answerCount: 0,
     votes: 2,
+    views: 12,
   }
 ];
 
@@ -132,6 +135,7 @@ export const useQuestions = () => {
       updatedAt: new Date().toISOString(),
       answerCount: 0,
       votes: 0,
+      views: 0,
     };
 
     const updatedQuestions = [newQuestion, ...questions];
@@ -173,7 +177,26 @@ export const useQuestions = () => {
     return newAnswer;
   };
 
+  const incrementViews = async (questionId: string) => {
+    const updatedQuestions = questions.map(q => 
+      q.id === questionId 
+        ? { ...q, views: q.views + 1 }
+        : q
+    );
+    saveQuestions(updatedQuestions);
+  };
+
+  const getUserAnswerCount = async (userId: string): Promise<number> => {
+    return answers.filter(a => a.authorId === userId).length;
+  };
+
   const vote = async (answerId: string, voteType: 'up' | 'down', userId: string) => {
+    // Check if user has answered enough questions to vote
+    const userAnswerCount = await getUserAnswerCount(userId);
+    if (userAnswerCount < 2) {
+      throw new Error('You need to answer at least 2 questions before you can vote on answers.');
+    }
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -243,6 +266,26 @@ export const useQuestions = () => {
     return votes[`${userId}-${answerId}`];
   };
 
+  const getRelatedQuestions = (currentQuestion: Question, limit: number = 5): Question[] => {
+    return questions
+      .filter(q => q.id !== currentQuestion.id)
+      .filter(q => {
+        // Find questions with similar tags
+        const commonTags = q.tags.filter(tag => currentQuestion.tags.includes(tag));
+        return commonTags.length > 0;
+      })
+      .sort((a, b) => {
+        // Sort by number of common tags, then by views
+        const aCommonTags = a.tags.filter(tag => currentQuestion.tags.includes(tag)).length;
+        const bCommonTags = b.tags.filter(tag => currentQuestion.tags.includes(tag)).length;
+        if (aCommonTags !== bCommonTags) {
+          return bCommonTags - aCommonTags;
+        }
+        return b.views - a.views;
+      })
+      .slice(0, limit);
+  };
+
   return {
     questions,
     answers,
@@ -253,5 +296,8 @@ export const useQuestions = () => {
     acceptAnswer,
     getQuestionAnswers,
     getUserVote,
+    incrementViews,
+    getUserAnswerCount,
+    getRelatedQuestions,
   };
 };

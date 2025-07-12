@@ -40,10 +40,14 @@ export const AnswerCard: React.FC<AnswerCardProps> = ({
       alert('Please sign in to vote on answers.');
       return;
     }
-    await onVote(type);
-    if (user) {
-      const newVote = await getUserVote(answer.id, user.id);
-      setUserVote(newVote);
+    try {
+      await onVote(type);
+      if (user) {
+        const newVote = await getUserVote(answer.id, user.id);
+        setUserVote(newVote);
+      }
+    } catch (error: any) {
+      alert(error.message || 'Error voting on answer');
     }
   };
 

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Send, Users, Clock } from 'lucide-react';
+import { ArrowLeft, Send, Users, Clock, Eye } from 'lucide-react';
 import { Question } from '../types';
 import { RichTextEditor } from '../components/RichTextEditor';
 import { AnswerCard } from '../components/AnswerCard';
+import { QuestionCard } from '../components/QuestionCard';
 import { useQuestions } from '../hooks/useQuestions';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -17,11 +18,17 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { user } = useAuth();
-  const { createAnswer, vote, acceptAnswer, getQuestionAnswers } = useQuestions();
+  const { createAnswer, vote, acceptAnswer, getQuestionAnswers, incrementViews, getRelatedQuestions, getUserAnswerCount } = useQuestions();
   const { addNotification } = useNotifications();
   
   const answers = getQuestionAnswers(question.id);
   const isQuestionOwner = user?.id === question.authorId;
+  const relatedQuestions = getRelatedQuestions(question);
+
+  // Increment views when component mounts
+  React.useEffect(() => {
+    incrementViews(question.id);
+  }, [question.id, incrementViews]);
 
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +69,8 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
     }
     try {
       await vote(answerId, type, user.id);
-    } catch (error) {
-      console.error('Error voting:', error);
+    } catch (error: any) {
+      alert(error.message || 'Error voting on answer');
     }
   };
 
@@ -122,6 +129,10 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
             <div className="flex items-center gap-1">
               <Users size={14} />
               <span>{answers.length} answers</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Eye size={14} />
+              <span>{question.views} views</span>
             </div>
             <div className="flex items-center gap-1">
               <Clock size={14} />
@@ -189,6 +200,33 @@ export const QuestionDetail: React.FC<QuestionDetailProps> = ({ question, onBack
           <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
             Sign In
           </button>
+        </div>
+      )}
+
+      {/* Related Questions */}
+      {relatedQuestions.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Related Questions</h3>
+          <div className="space-y-3">
+            {relatedQuestions.map((relatedQuestion) => (
+              <div key={relatedQuestion.id} className="border-l-4 border-blue-200 pl-4">
+                <h4 className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer transition-colors">
+                  {relatedQuestion.title}
+                </h4>
+                <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                  <span>{relatedQuestion.answerCount} answers</span>
+                  <span>{relatedQuestion.views} views</span>
+                  <div className="flex gap-1">
+                    {relatedQuestion.tags.slice(0, 3).map((tag, index) => (
+                      <span key={index} className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

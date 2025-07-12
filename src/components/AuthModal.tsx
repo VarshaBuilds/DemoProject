@@ -41,13 +41,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setEmail('');
       setPassword('');
       setUsername('');
-      
-      // Show success message for registration after closing modal
-      if (mode === 'register') {
-        setTimeout(() => {
-          alert('Account created successfully! You are now signed in.');
-        }, 100);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

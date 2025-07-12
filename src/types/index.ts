@@ -19,6 +19,7 @@ export interface Question {
   acceptedAnswerId?: string;
   answerCount: number;
   votes: number;
+  views: number;
 }
 
 export interface Answer {

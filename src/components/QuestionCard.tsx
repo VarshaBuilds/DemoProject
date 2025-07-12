@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Clock, Tag, CheckCircle } from 'lucide-react';
+import { MessageSquare, Clock, Tag, CheckCircle, Eye } from 'lucide-react';
 import { Question } from '../types';
 
 interface QuestionCardProps {
@@ -58,6 +58,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question, onClick })
           <div className="flex items-center gap-1">
             <MessageSquare size={14} />
             <span>{question.answerCount} answers</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Eye size={14} />
+            <span>{question.views} views</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock size={14} />

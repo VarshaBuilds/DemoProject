@@ -29,6 +29,7 @@ const getAllUsers = () => {
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
     // Check for existing session
@@ -50,6 +51,12 @@ export const useAuth = () => {
     }
     setLoading(false);
   }, []);
+
+  // Force re-render when user state changes
+  const triggerUpdate = () => {
+    forceUpdate({});
+    window.dispatchEvent(new Event('userStateChanged'));
+  };
 
   const login = async (email: string, password: string): Promise<User> => {
     // Simulate API delay
@@ -73,9 +80,7 @@ export const useAuth = () => {
     console.log('Logging in user:', user); // Debug log
     setUser(user);
     localStorage.setItem('stackit_user', JSON.stringify(user));
-    
-    // Force a re-render by dispatching a custom event
-    window.dispatchEvent(new Event('userStateChanged'));
+    triggerUpdate();
     return user;
   };
 
@@ -129,9 +134,7 @@ export const useAuth = () => {
     console.log('Registering user:', newUser); // Debug log
     setUser(newUser);
     localStorage.setItem('stackit_user', JSON.stringify(newUser));
-    
-    // Force a re-render by dispatching a custom event
-    window.dispatchEvent(new Event('userStateChanged'));
+    triggerUpdate();
     return newUser;
   };
 
@@ -139,9 +142,7 @@ export const useAuth = () => {
     console.log('Logging out user'); // Debug log
     setUser(null);
     localStorage.removeItem('stackit_user');
-    
-    // Force a re-render by dispatching a custom event
-    window.dispatchEvent(new Event('userStateChanged'));
+    triggerUpdate();
   };
 
   return {

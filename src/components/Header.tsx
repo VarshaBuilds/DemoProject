@@ -20,17 +20,18 @@ export const Header: React.FC<HeaderProps> = ({
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [, forceUpdate] = useState({});
 
   // Listen for user state changes to force re-render
   React.useEffect(() => {
     const handleUserStateChange = () => {
-      forceUpdate({});
+      // Force component re-render by updating state
+      setShowUserMenu(false);
+      setShowMobileMenu(false);
     };
     
     window.addEventListener('userStateChanged', handleUserStateChange);
     return () => window.removeEventListener('userStateChanged', handleUserStateChange);
-  }, []);
+  }, [user]);
 
   const handleAuthClick = (mode: 'login' | 'register') => {
     setAuthMode(mode);
