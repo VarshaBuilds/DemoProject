@@ -1,52 +1,62 @@
 import { useState, useEffect } from 'react';
 import { Notification } from '../types';
+import { notificationService } from '../services/api';
 
 export const useNotifications = (userId?: string) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userId) {
+    if (userId) {
+      loadNotifications();
+    } else {
       setNotifications([]);
       setLoading(false);
-      return;
     }
-
-    // Load notifications from localStorage
-    const savedNotifications = localStorage.getItem(`stackit_notifications_${userId}`);
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    }
-    setLoading(false);
   }, [userId]);
 
-  const saveNotifications = (newNotifications: Notification[]) => {
+  const loadNotifications = async () => {
     if (!userId) return;
-    setNotifications(newNotifications);
-    localStorage.setItem(`stackit_notifications_${userId}`, JSON.stringify(newNotifications));
+    
+    try {
+      const notificationsData = await notificationService.getNotifications(userId);
+      setNotifications(notificationsData);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      id: Date.now().toString(),
-      ...notification,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedNotifications = [newNotification, ...notifications];
-    saveNotifications(updatedNotifications);
+    try {
+      const newNotification = await notificationService.createNotification(notification);
+      setNotifications(prev => [newNotification, ...prev]);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
   };
 
   const markAsRead = async (notificationId: string) => {
-    const updatedNotifications = notifications.map(n => 
-      n.id === notificationId ? { ...n, isRead: true } : n
-    );
-    saveNotifications(updatedNotifications);
+    try {
+      await notificationService.markAsRead(notificationId);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, isRead: true } : n
+      ));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
   const markAllAsRead = async () => {
-    const updatedNotifications = notifications.map(n => ({ ...n, isRead: true }));
-    saveNotifications(updatedNotifications);
+    if (!userId) return;
+    
+    try {
+      await notificationService.markAllAsRead(userId);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
   };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
